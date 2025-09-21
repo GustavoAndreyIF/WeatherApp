@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, forkJoin, switchMap } from 'rxjs';
 
@@ -11,6 +11,9 @@ interface GeocodingResponse {
     latitude: number;
     longitude: number;
     name: string;
+    country?: string;
+    country_code?: string;
+    admin1?: string;
   }>;
 }
 
@@ -18,6 +21,9 @@ interface CityCoordinates {
   latitude: number;
   longitude: number;
   name: string;
+  country?: string;
+  country_code?: string;
+  admin1?: string;
 }
 
 // Interfaces para Weather API
@@ -186,6 +192,60 @@ interface ComprehensiveWeatherData {
 export class WeatherService {
   private readonly http = inject(HttpClient);
 
+  // Signals para armazenar dados da cidade selecionada
+  private readonly _selectedCity = signal<CityCoordinates | null>(null);
+
+  // Signals readonly para consumo externo
+  readonly selectedCity = this._selectedCity.asReadonly();
+
+  constructor() {
+    // Inicializa com Parnamirim como cidade padrão
+    this.initializeDefaultCity();
+  }
+
+  /**
+   * Inicializa a aplicação com Parnamirim como cidade padrão
+   */
+  private initializeDefaultCity(): void {
+    console.log('🏠 Carregando cidade padrão: Parnamirim');
+
+    this.getCityCoordinates('Parnamirim').subscribe({
+      next: (cityData) => {
+        console.log('✅ Cidade padrão carregada:', cityData);
+        this.setSelectedCity(cityData);
+      },
+      error: (error) => {
+        console.warn('⚠️ Erro ao carregar cidade padrão:', error);
+        // Se Parnamirim não funcionar, tenta uma alternativa
+        this.loadFallbackCity();
+      },
+    });
+  }
+
+  /**
+   * Carrega uma cidade alternativa caso Parnamirim falhe
+   */
+  private loadFallbackCity(): void {
+    console.log('🔄 Tentando cidade alternativa: Natal');
+
+    this.getCityCoordinates('Natal').subscribe({
+      next: (cityData) => {
+        console.log('✅ Cidade alternativa carregada:', cityData);
+        this.setSelectedCity(cityData);
+      },
+      error: (error) => {
+        console.error('❌ Erro ao carregar cidade alternativa:', error);
+      },
+    });
+  }
+
+  /**
+   * Define a cidade selecionada e limpa erros
+   */
+  setSelectedCity(cityData: CityCoordinates): void {
+    this._selectedCity.set(cityData);
+  }
+
   getCityCoordinates(city: string): Observable<CityCoordinates> {
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
       city
@@ -193,8 +253,17 @@ export class WeatherService {
     return this.http.get<GeocodingResponse>(url).pipe(
       map((res) => {
         if (res && res.results && res.results.length > 0) {
-          const { latitude, longitude, name } = res.results[0];
-          return { latitude, longitude, name };
+          const result = res.results[0];
+          const cityData = {
+            latitude: result.latitude,
+            longitude: result.longitude,
+            name: result.name,
+            country: result.country,
+            country_code: result.country_code,
+            admin1: result.admin1,
+          };
+          console.log('🌍 Dados completos da cidade:', cityData);
+          return cityData;
         }
         throw new Error('Cidade não encontrada');
       })

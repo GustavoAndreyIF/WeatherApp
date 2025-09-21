@@ -29,27 +29,27 @@ export function getWeatherDescription(weatherCode: number): string {
     3: 'Nublado',
     45: 'Neblina',
     48: 'Neblina com geada',
-    51: 'Garoa fraca',
+    51: 'Garoa leve',
     53: 'Garoa moderada',
-    55: 'Garoa forte',
-    56: 'Garoa congelante fraca',
-    57: 'Garoa congelante forte',
-    61: 'Chuva fraca',
+    55: 'Garoa densa',
+    56: 'Garoa congelante leve',
+    57: 'Garoa congelante densa',
+    61: 'Chuva leve',
     63: 'Chuva moderada',
     65: 'Chuva forte',
-    66: 'Chuva congelante fraca',
+    66: 'Chuva congelante leve',
     67: 'Chuva congelante forte',
-    71: 'Neve fraca',
-    73: 'Neve moderada',
-    75: 'Neve forte',
+    71: 'Queda de neve leve',
+    73: 'Queda de neve moderada',
+    75: 'Queda de neve forte',
     77: 'Grãos de neve',
-    80: 'Pancadas de chuva fracas',
+    80: 'Pancadas de chuva leves',
     81: 'Pancadas de chuva moderadas',
-    82: 'Pancadas de chuva fortes',
-    85: 'Pancadas de neve fracas',
+    82: 'Pancadas de chuva violentas',
+    85: 'Pancadas de neve leves',
     86: 'Pancadas de neve fortes',
     95: 'Tempestade',
-    96: 'Tempestade com granizo fraco',
+    96: 'Tempestade com granizo leve',
     99: 'Tempestade com granizo forte',
   };
 
@@ -199,10 +199,107 @@ export function formatTemperature(
 }
 
 /**
- * Obtém ícone/emoji baseado no código meteorológico e se é dia/noite
+ * Obtém ícone do Google Material Symbols baseado no código meteorológico e se é dia/noite
+ * @param weatherCode Código WMO do tempo
+ * @param isDay Se é dia (1) ou noite (0)
+ * @returns Nome do ícone do Google Material Symbols
+ */
+export function getWeatherIcon(weatherCode: number, isDay: number): string {
+  // Céu limpo
+  if (weatherCode === 0) return isDay ? 'clear_day' : 'bedtime';
+
+  // Principalmente limpo
+  if (weatherCode === 1) return isDay ? 'wb_sunny' : 'wb_twilight';
+
+  // Parcialmente nublado
+  if (weatherCode === 2)
+    return isDay ? 'partly_cloudy_day' : 'partly_cloudy_night';
+
+  // Nublado
+  if (weatherCode === 3) return isDay ? 'filter_drama' : 'cloud';
+
+  // Neblina
+  if (weatherCode === 45) return 'foggy';
+
+  // Neblina com geada
+  if (weatherCode === 48) return 'mist';
+
+  // Garoa leve
+  if (weatherCode === 51) return 'grain';
+
+  // Garoa moderada
+  if (weatherCode === 53) return 'weather_mix';
+
+  // Garoa densa
+  if (weatherCode === 55) return 'water_drop';
+
+  // Garoa congelante leve
+  if (weatherCode === 56) return 'ac_unit';
+
+  // Garoa congelante densa
+  if (weatherCode === 57) return 'severe_cold';
+
+  // Chuva leve
+  if (weatherCode === 61) return 'rainy_light';
+
+  // Chuva moderada
+  if (weatherCode === 63) return 'rainy';
+
+  // Chuva forte
+  if (weatherCode === 65) return 'rainy_heavy';
+
+  // Chuva congelante leve
+  if (weatherCode === 66) return 'weather_mix';
+
+  // Chuva congelante forte
+  if (weatherCode === 67) return 'ac_unit';
+
+  // Queda de neve leve
+  if (weatherCode === 71) return 'weather_snowy';
+
+  // Queda de neve moderada
+  if (weatherCode === 73) return 'snowing';
+
+  // Queda de neve forte
+  if (weatherCode === 75) return 'severe_cold';
+
+  // Grãos de neve
+  if (weatherCode === 77) return 'weather_hail';
+
+  // Pancadas de chuva leves
+  if (weatherCode === 80) return 'rainy_light';
+
+  // Pancadas de chuva moderadas
+  if (weatherCode === 81) return 'rainy';
+
+  // Pancadas de chuva violentas
+  if (weatherCode === 82) return 'rainy_heavy';
+
+  // Pancadas de neve leves
+  if (weatherCode === 85) return 'weather_snowy';
+
+  // Pancadas de neve fortes
+  if (weatherCode === 86) return 'snowing';
+
+  // Tempestade
+  if (weatherCode === 95) return 'thunderstorm';
+
+  // Tempestade com granizo leve
+  if (weatherCode === 96) return 'weather_hail';
+
+  // Tempestade com granizo forte
+  if (weatherCode === 99) return 'bolt';
+
+  // Padrão para condições desconhecidas
+  return isDay ? 'partly_cloudy_day' : 'partly_cloudy_night';
+}
+
+/**
+ * Obtém emoji baseado no código meteorológico e se é dia/noite (mantido para compatibilidade)
  * @param weatherCode Código WMO do tempo
  * @param isDay Se é dia (1) ou noite (0)
  * @returns Emoji representativo
+ * @deprecated Use getWeatherIcon() para ícones do Google Material Symbols
  */
 export function getWeatherEmoji(weatherCode: number, isDay: number): string {
   if (weatherCode === 0) return isDay ? '☀️' : '🌙';

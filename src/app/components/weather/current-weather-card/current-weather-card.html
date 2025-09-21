@@ -1,0 +1,134 @@
+@if (isLoading()) {
+<div class="flex justify-center items-center py-8">
+  <div class="text-center">
+    <div
+      class="animate-spin rounded-full h-12 w-12 border-b-5 border-emerald-50 mx-auto mb-3"
+    ></div>
+    <p class="text-emerald-50 text-1xl font-bold">
+      Carregando dados do clima...
+    </p>
+  </div>
+</div>
+} @else if (error()) {
+<div role="alert" class="rounded-xl bg-red-500 p-3">
+  <div class="flex items-center gap-2 text-white">
+    <span class="material-symbols-outlined text-white"> error </span>
+    <p><span class="text-1lg font-semibold">Error: </span>{{ error() }}</p>
+  </div>
+</div>
+
+} @else if (currentWeather()) { 
+@if (showOnSmallScreen()) {
+<div class="flex gap-5 pb-4 justify-center">
+  <div class="flex gap-2">
+    <span class="material-symbols-outlined text-1xl text-emerald-50">
+      device_thermostat
+    </span>
+    <p class="text-1xl text-emerald-50 font-bold">
+      {{ getApparentTemperature() }}
+    </p>
+  </div>
+  <div class="flex gap-2">
+    <span class="material-symbols-outlined text-1xl text-emerald-50">
+      humidity_low
+    </span>
+    <p class="text-1xl text-emerald-50 font-bold">
+      {{ getHumidity() }}
+    </p>
+  </div>
+  <div class="flex gap-2">
+    <span class="material-symbols-outlined text-1xl text-emerald-50">
+      wind_power
+    </span>
+    <p class="text-1xl text-emerald-50 font-bold">
+      {{ getWindSpeed() }}
+    </p>
+  </div>
+</div>
+}
+<div class="lg:grid-cols-1 lg:grid lg:gap-4 lg:items-center lg:px-24">
+  <div class="lg:col-end-1">
+    <div class="text-center p-1 mb-1.5">
+      @if (showOnSmallScreen()) {
+      <h3 class="text-sm mb-1.5 text-emerald-50 font-black">
+        {{ getCurrentDateTime().time }}
+      </h3>
+      }
+      <h2 class="text-4xl mb-0.5 text-emerald-50 font-semibold">
+        {{ getWeatherDescription() }}
+      </h2>
+      <p class="text-1xl text-emerald-50 font-bold">{{ getFullLocation() }}</p>
+    </div>
+
+    <div class="flex justify-center gap-1">
+      <div>
+        <h1 class="text-9xl text-emerald-50 font-semibold">
+          {{ getTemperature() }}
+        </h1>
+      </div>
+      <div class="flex-col">
+        <p class="text-3xl text-emerald-50 font-bold mb-1.5 mt-3">°C</p>
+        <p class="text-1xl text-emerald-50 font-bold mt-5">
+          ↑ {{ getMinMaxTemp().max }}
+        </p>
+        <p class="text-1xl text-emerald-50 font-bold">
+          ↓ {{ getMinMaxTemp().min }}
+        </p>
+      </div>
+    </div>
+    @if (showOnSmallScreen()) {
+    <p class="text-sm text-emerald-50 font-bold text-center">
+      {{ getCurrentDateTime().date }}
+    </p>
+    }
+  </div>
+  <div class="lg:col-end-3">
+    <div class="lg:flex lg:items-center lg:gap-2 gap-1 mt-2 text-center">
+      <span
+        class="material-symbols-outlined text-emerald-50"
+        style="font-size: 10rem"
+        >{{ getWeatherIcon() }}</span
+      >
+      @if (showOnLargeScreen()) {
+      <div class="flex-col gap-5">
+        <div class="flex gap-2 mb-3.5">
+          <span class="material-symbols-outlined text-1xl text-emerald-50">
+            device_thermostat
+          </span>
+          <p class="text-1xl text-emerald-50 font-bold">
+            Sensação Térmica: {{ getApparentTemperature() }}
+          </p>
+        </div>
+        <div class="flex gap-2 mb-3.5">
+          <span class="material-symbols-outlined text-1xl text-emerald-50">
+            humidity_low
+          </span>
+          <p class="text-1xl text-emerald-50 font-bold">
+            Umidade do Ar: {{ getHumidity() }}
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <span class="material-symbols-outlined text-1xl text-emerald-50">
+            wind_power
+          </span>
+          <p class="text-1xl text-emerald-50 font-bold">
+            Velocidade do Vento: {{ getWindSpeed() }}
+          </p>
+        </div>
+      </div>
+
+      }
+    </div>
+    @if (showOnLargeScreen()) {
+    <p class="text-2xl text-emerald-50 font-bold text-center">
+      {{ getCurrentDateTime().date }} / {{ getCurrentDateTime().time }}
+    </p>
+    }
+  </div>
+</div>
+
+} @else {
+<div class="flex justify-center items-center py-8">
+  <p class="text-emerald-50 text-1xl font-bold">Nenhum dado disponível</p>
+</div>
+}
