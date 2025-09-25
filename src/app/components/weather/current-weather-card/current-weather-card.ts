@@ -1,5 +1,7 @@
 import { Component, inject, effect, signal } from '@angular/core';
+import { finalize } from 'rxjs/operators';
 import { WeatherService } from '../../../service/weather-service';
+import { WeatherStateService } from '../../../service/weather-state';
 import {
   getWeatherDescription,
   getWeatherIcon,
@@ -13,21 +15,22 @@ import {
 })
 export class CurrentWeatherCard {
   private readonly weatherService = inject(WeatherService);
+  private readonly weatherState = inject(WeatherStateService);
 
+  // 📖 Acesso aos signals do state service
   readonly selectedCity = this.weatherService.selectedCity;
+  readonly isLoading = this.weatherState.isLoading;
+  readonly error = this.weatherState.error;
+  readonly currentWeather = this.weatherState.currentWeather;
+  readonly hasData = this.weatherState.hasData;
+  readonly currentTemperature = this.weatherState.currentTemperature;
 
-  // Signals para armazenar dados do clima
-  protected readonly currentWeather = signal<any>(null);
-  protected readonly isLoading = signal<boolean>(false);
-  protected readonly error = signal<string>('');
-  
-  // Signal para controlar responsividade
+  // Signals locais do componente
   protected readonly isLargeScreen = signal<boolean>(false);
-
   constructor() {
     // Inicializar detecção de tela
     this.initializeScreenDetection();
-    
+
     // Effect para monitorar mudanças na cidade e buscar dados do clima
     effect(() => {
       const city = this.selectedCity();
@@ -40,7 +43,7 @@ export class CurrentWeatherCard {
         this.fetchWeatherData(city);
       } else {
         console.log('❌ Nenhuma cidade selecionada');
-        this.currentWeather.set(null);
+        this.weatherState.clearAll();
       }
     });
   }
@@ -49,23 +52,30 @@ export class CurrentWeatherCard {
    * Busca dados do clima atual para a cidade selecionada
    */
   private fetchWeatherData(city: any): void {
-    this.isLoading.set(true);
-    this.error.set('');
+    this.weatherState.setLoading(true);
+    this.weatherState.clearError();
 
     console.log(`🌤️ Buscando dados do clima para ${city.name}...`);
 
     this.weatherService
       .getCurrentWeather(city.latitude, city.longitude)
+      .pipe(
+        finalize(() => {
+          // Garantia de que loading para
+          if (this.weatherState.isLoading()) {
+            this.weatherState.setLoading(false);
+          }
+        })
+      )
       .subscribe({
         next: (weatherData) => {
           console.log('✅ Dados do clima recebidos:', weatherData);
-          this.currentWeather.set(weatherData);
-          this.isLoading.set(false);
+          this.weatherState.setWeatherData(weatherData);
         },
-        error: (error) => {
-          console.error('❌ Erro ao buscar dados do clima:', error);
-          this.error.set('Erro ao carregar dados do clima');
-          this.isLoading.set(false);
+        error: (err) => {
+          // ✅ Erro já tratado pelo interceptor!
+          console.log('❌ Erro capturado:', err);
+          this.weatherState.setError(err.message);
         },
       });
   }
@@ -147,8 +157,8 @@ export class CurrentWeatherCard {
   protected getApparentTemperature(): string {
     const weather = this.currentWeather();
     return weather?.current?.apparent_temperature
-      ? `${Math.round(weather.current.apparent_temperature)}°`
-      : '--°';
+      ? `${Math.round(weather.current.apparent_temperature)}`
+      : '--';
   }
 
   /**
@@ -214,16 +224,6 @@ export class CurrentWeatherCard {
   }
 
   /**
-   * Obtém a pressão atmosférica
-   */
-  protected getPressure(): string {
-    const weather = this.currentWeather();
-    return weather?.current?.pressure_msl
-      ? `${Math.round(weather.current.pressure_msl)} hPa`
-      : '-- hPa';
-  }
-
-  /**
    * Obtém a cobertura de nuvens
    */
   protected getCloudCover(): string {
@@ -239,7 +239,7 @@ export class CurrentWeatherCard {
   private initializeScreenDetection(): void {
     // Verificar tamanho inicial
     this.checkScreenSize();
-    
+
     // Adicionar listener para mudanças de tamanho
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', () => this.checkScreenSize());

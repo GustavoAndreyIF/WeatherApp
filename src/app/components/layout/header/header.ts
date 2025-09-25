@@ -5,6 +5,7 @@ import {
   inject,
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { finalize } from 'rxjs/operators';
 import { WeatherService } from '../../../service/weather-service';
 
 @Component({
@@ -42,24 +43,35 @@ export class Header {
       const normalizedTerm = this.normalizeSearchTerm(value);
       this.searchValue.set(value);
 
-      this.weatherService.getCityCoordinates(normalizedTerm).subscribe({
-        next: (cityData: any) => {
-          console.log('Cidade encontrada:', cityData);
-          
-          this.weatherService.setSelectedCity(cityData);
-          
-          this.isLoading.set(false);
-          this.clearSearch();
-        },
-        error: (error: any) => {
-          console.error('Erro ao buscar cidade:', error);
-          this.errorMessage.set(
-            `A cidade "${value}" não foi encontrada. Tente novamente.`
-          );
-          this.isLoading.set(false);
-          this.clearSearch();
-        },
-      });
+      this.weatherService
+        .getCityCoordinates(normalizedTerm)
+        .pipe(
+          finalize(() => this.isLoading.set(false)) // Sempre para o loading
+        )
+        .subscribe({
+          next: (cityData: any) => {
+            console.log('Cidade encontrada:', cityData);
+
+            this.weatherService.setSelectedCity(cityData);
+            this.errorMessage.set(''); // Sucesso, limpa qualquer erro
+            this.clearSearch();
+          },
+          error: (err: any) => {
+            // ✅ Erro já tratado pelo interceptor!
+            console.log('Search error details:', err);
+
+            // Para busca de cidade, personaliza a mensagem
+            if (err.status === 404) {
+              this.errorMessage.set(
+                `A cidade "${value}" não foi encontrada. Tente novamente.`
+              );
+            } else {
+              this.errorMessage.set(err.message || 'Erro ao buscar cidade');
+            }
+
+            this.clearSearch();
+          },
+        });
     }
   }
 

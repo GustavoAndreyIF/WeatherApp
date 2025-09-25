@@ -2,9 +2,6 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, forkJoin, switchMap } from 'rxjs';
 
-// Utilities para interpretação de dados
-export * from '../utils/weather-interpreters';
-
 // Interfaces para tipagem - Geocoding
 interface GeocodingResponse {
   results?: Array<{
@@ -16,7 +13,7 @@ interface GeocodingResponse {
     admin1?: string;
   }>;
 }
-
+// Interface para capturar os dados de coordenadas da cidade
 interface CityCoordinates {
   latitude: number;
   longitude: number;
@@ -26,69 +23,7 @@ interface CityCoordinates {
   admin1?: string;
 }
 
-// Interfaces para Weather API
-interface HourlyWeather {
-  time: string[];
-  temperature_2m: number[];
-  relative_humidity_2m: number[];
-  apparent_temperature: number[];
-  precipitation_probability: number[];
-  precipitation: number[];
-  rain: number[];
-  showers: number[];
-  snowfall: number[];
-  weather_code: number[];
-  pressure_msl: number[];
-  surface_pressure: number[];
-  cloud_cover: number[];
-  cloud_cover_low: number[];
-  cloud_cover_mid: number[];
-  cloud_cover_high: number[];
-  visibility: number[];
-  evapotranspiration: number[];
-  et0_fao_evapotranspiration: number[];
-  vapour_pressure_deficit: number[];
-  wind_speed_10m: number[];
-  wind_direction_10m: number[];
-  wind_gusts_10m: number[];
-  uv_index: number[];
-  uv_index_clear_sky: number[];
-  is_day: number[];
-  shortwave_radiation: number[];
-  direct_radiation: number[];
-  diffuse_radiation: number[];
-  direct_normal_irradiance: number[];
-  global_tilted_irradiance: number[];
-  sunshine_duration: number[];
-  daylight_duration: number[];
-}
-
-interface DailyWeather {
-  time: string[];
-  weather_code: number[];
-  temperature_2m_max: number[];
-  temperature_2m_min: number[];
-  apparent_temperature_max: number[];
-  apparent_temperature_min: number[];
-  sunrise: string[];
-  sunset: string[];
-  daylight_duration: number[];
-  sunshine_duration: number[];
-  uv_index_max: number[];
-  uv_index_clear_sky_max: number[];
-  precipitation_sum: number[];
-  rain_sum: number[];
-  showers_sum: number[];
-  snowfall_sum: number[];
-  precipitation_hours: number[];
-  precipitation_probability_max: number[];
-  wind_speed_10m_max: number[];
-  wind_gusts_10m_max: number[];
-  wind_direction_10m_dominant: number[];
-  shortwave_radiation_sum: number[];
-  et0_fao_evapotranspiration: number[];
-}
-
+// ✅ Interface principal para Weather API (ESSENCIAL - mantida)
 interface WeatherResponse {
   latitude: number;
   longitude: number;
@@ -115,57 +50,71 @@ interface WeatherResponse {
     wind_direction_10m: number;
     wind_gusts_10m: number;
   };
-  hourly?: HourlyWeather;
-  daily?: DailyWeather;
+  hourly?: {
+    time: string[];
+    temperature_2m: number[];
+    relative_humidity_2m: number[];
+    apparent_temperature: number[];
+    precipitation_probability: number[];
+    precipitation: number[];
+    rain: number[];
+    showers: number[];
+    snowfall: number[];
+    weather_code: number[];
+    pressure_msl: number[];
+    surface_pressure: number[];
+    cloud_cover: number[];
+    cloud_cover_low: number[];
+    cloud_cover_mid: number[];
+    cloud_cover_high: number[];
+    visibility: number[];
+    evapotranspiration: number[];
+    et0_fao_evapotranspiration: number[];
+    vapour_pressure_deficit: number[];
+    wind_speed_10m: number[];
+    wind_direction_10m: number[];
+    wind_gusts_10m: number[];
+    uv_index: number[];
+    uv_index_clear_sky: number[];
+    is_day: number[];
+    shortwave_radiation: number[];
+    direct_radiation: number[];
+    diffuse_radiation: number[];
+    direct_normal_irradiance: number[];
+    global_tilted_irradiance: number[];
+    sunshine_duration: number[];
+    daylight_duration: number[];
+  };
+  daily?: {
+    time: string[];
+    weather_code: number[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    apparent_temperature_max: number[];
+    apparent_temperature_min: number[];
+    sunrise: string[];
+    sunset: string[];
+    daylight_duration: number[];
+    sunshine_duration: number[];
+    uv_index_max: number[];
+    uv_index_clear_sky_max: number[];
+    precipitation_sum: number[];
+    rain_sum: number[];
+    showers_sum: number[];
+    snowfall_sum: number[];
+    precipitation_hours: number[];
+    precipitation_probability_max: number[];
+    wind_speed_10m_max: number[];
+    wind_gusts_10m_max: number[];
+    wind_direction_10m_dominant: number[];
+    shortwave_radiation_sum: number[];
+    et0_fao_evapotranspiration: number[];
+  };
   hourly_units?: Record<string, string>;
   daily_units?: Record<string, string>;
 }
 
-// Interfaces para Air Quality API
-interface HourlyAirQuality {
-  time: string[];
-  pm10: number[];
-  pm2_5: number[];
-  carbon_monoxide: number[];
-  nitrogen_dioxide: number[];
-  sulphur_dioxide: number[];
-  ozone: number[];
-  aerosol_optical_depth: number[];
-  dust: number[];
-  uv_index: number[];
-  uv_index_clear_sky: number[];
-  ammonia?: number[];
-  european_aqi: number[];
-  european_aqi_pm2_5: number[];
-  european_aqi_pm10: number[];
-  european_aqi_nitrogen_dioxide: number[];
-  european_aqi_ozone: number[];
-  european_aqi_sulphur_dioxide: number[];
-  us_aqi: number[];
-  us_aqi_pm2_5: number[];
-  us_aqi_pm10: number[];
-  us_aqi_nitrogen_dioxide: number[];
-  us_aqi_ozone: number[];
-  us_aqi_sulphur_dioxide: number[];
-  us_aqi_carbon_monoxide: number[];
-}
-
-interface CurrentAirQuality {
-  time: string;
-  european_aqi: number;
-  us_aqi: number;
-  pm10: number;
-  pm2_5: number;
-  carbon_monoxide: number;
-  nitrogen_dioxide: number;
-  sulphur_dioxide: number;
-  ozone: number;
-  aerosol_optical_depth: number;
-  dust: number;
-  uv_index: number;
-  uv_index_clear_sky: number;
-}
-
+// ✅ Interface principal para Air Quality API (ESSENCIAL - mantida)
 interface AirQualityResponse {
   latitude: number;
   longitude: number;
@@ -174,17 +123,126 @@ interface AirQualityResponse {
   timezone: string;
   timezone_abbreviation: string;
   elevation: number;
-  current?: CurrentAirQuality;
-  hourly?: HourlyAirQuality;
+  current?: {
+    time: string;
+    european_aqi: number;
+    us_aqi: number;
+    pm10: number;
+    pm2_5: number;
+    carbon_monoxide: number;
+    nitrogen_dioxide: number;
+    sulphur_dioxide: number;
+    ozone: number;
+    aerosol_optical_depth: number;
+    dust: number;
+    uv_index: number;
+    uv_index_clear_sky: number;
+  };
+  hourly?: {
+    time: string[];
+    pm10: number[];
+    pm2_5: number[];
+    carbon_monoxide: number[];
+    nitrogen_dioxide: number[];
+    sulphur_dioxide: number[];
+    ozone: number[];
+    aerosol_optical_depth: number[];
+    dust: number[];
+    uv_index: number[];
+    uv_index_clear_sky: number[];
+    ammonia?: number[];
+    european_aqi: number[];
+    european_aqi_pm2_5: number[];
+    european_aqi_pm10: number[];
+    european_aqi_nitrogen_dioxide: number[];
+    european_aqi_ozone: number[];
+    european_aqi_sulphur_dioxide: number[];
+    us_aqi: number[];
+    us_aqi_pm2_5: number[];
+    us_aqi_pm10: number[];
+    us_aqi_nitrogen_dioxide: number[];
+    us_aqi_ozone: number[];
+    us_aqi_sulphur_dioxide: number[];
+    us_aqi_carbon_monoxide: number[];
+  };
   hourly_units?: Record<string, string>;
 }
 
-// Interface para resposta completa combinada
+// ✅ Interface para resposta completa combinada (ESSENCIAL - mantida)
 interface ComprehensiveWeatherData {
   location: CityCoordinates;
   weather: WeatherResponse;
   airQuality: AirQualityResponse;
 }
+
+// 🔧 UTILITY TYPES - Substituem interfaces redundantes
+// Weather Data Types
+export type WeatherCurrent = NonNullable<WeatherResponse['current']>;
+export type WeatherHourly = NonNullable<WeatherResponse['hourly']>;
+export type WeatherDaily = NonNullable<WeatherResponse['daily']>;
+
+// Air Quality Data Types
+export type AirQualityCurrent = NonNullable<AirQualityResponse['current']>;
+export type AirQualityHourly = NonNullable<AirQualityResponse['hourly']>;
+
+// Specific Data Types - Para uso futuro específico
+export type TemperatureData = Pick<
+  WeatherCurrent,
+  'temperature_2m' | 'apparent_temperature'
+>;
+export type WindData = Pick<
+  WeatherCurrent,
+  'wind_speed_10m' | 'wind_direction_10m' | 'wind_gusts_10m'
+>;
+export type PressureData = Pick<
+  WeatherCurrent,
+  'pressure_msl' | 'surface_pressure'
+>;
+export type PrecipitationData = Pick<
+  WeatherCurrent,
+  'precipitation' | 'rain' | 'showers' | 'snowfall'
+>;
+
+// Hourly Specific Types - Para análises temporais
+export type HourlyTemperature = Pick<
+  WeatherHourly,
+  'time' | 'temperature_2m' | 'apparent_temperature'
+>;
+export type HourlyPrecipitation = Pick<
+  WeatherHourly,
+  'time' | 'precipitation' | 'precipitation_probability'
+>;
+export type HourlyWind = Pick<
+  WeatherHourly,
+  'time' | 'wind_speed_10m' | 'wind_direction_10m' | 'wind_gusts_10m'
+>;
+
+// Daily Specific Types - Para previsões estendidas
+export type DailyTemperature = Pick<
+  WeatherDaily,
+  'time' | 'temperature_2m_max' | 'temperature_2m_min'
+>;
+export type DailySun = Pick<
+  WeatherDaily,
+  'time' | 'sunrise' | 'sunset' | 'daylight_duration' | 'sunshine_duration'
+>;
+
+// Air Quality Specific Types
+export type AirQualityIndex = Pick<
+  AirQualityCurrent,
+  'european_aqi' | 'us_aqi'
+>;
+export type AirQualityPollutants = Pick<
+  AirQualityCurrent,
+  'pm10' | 'pm2_5' | 'ozone' | 'nitrogen_dioxide'
+>;
+
+// Location Types
+export type BasicCoordinates = Pick<CityCoordinates, 'latitude' | 'longitude'>;
+export type LocationInfo = Pick<
+  CityCoordinates,
+  'name' | 'country' | 'country_code' | 'admin1'
+>;
 
 @Injectable({
   providedIn: 'root',
@@ -467,5 +525,80 @@ export class WeatherService {
       weather: this.getCurrentWeather(latitude, longitude),
       airQuality: this.getCurrentAirQuality(latitude, longitude),
     });
+  }
+
+  // 🔧 MÉTODOS UTILITÁRIOS - Demonstram uso dos Utility Types
+
+  /**
+   * Extrai apenas dados de temperatura de uma resposta weather
+   * @param weather - Resposta completa da API
+   * @returns Dados específicos de temperatura
+   */
+  extractTemperatureData(weather: WeatherResponse): TemperatureData | null {
+    if (!weather.current) return null;
+
+    const { temperature_2m, apparent_temperature }: TemperatureData =
+      weather.current;
+    return { temperature_2m, apparent_temperature };
+  }
+
+  /**
+   * Extrai dados de vento de uma resposta weather
+   * @param weather - Resposta completa da API
+   * @returns Dados específicos de vento
+   */
+  extractWindData(weather: WeatherResponse): WindData | null {
+    if (!weather.current) return null;
+
+    const { wind_speed_10m, wind_direction_10m, wind_gusts_10m }: WindData =
+      weather.current;
+    return { wind_speed_10m, wind_direction_10m, wind_gusts_10m };
+  }
+
+  /**
+   * Extrai dados horários de temperatura
+   * @param weather - Resposta completa da API
+   * @returns Array de temperaturas horárias
+   */
+  extractHourlyTemperature(weather: WeatherResponse): HourlyTemperature | null {
+    if (!weather.hourly) return null;
+
+    const { time, temperature_2m, apparent_temperature }: HourlyTemperature =
+      weather.hourly;
+    return { time, temperature_2m, apparent_temperature };
+  }
+
+  /**
+   * Extrai índices de qualidade do ar
+   * @param airQuality - Resposta da API de qualidade do ar
+   * @returns Índices de qualidade do ar
+   */
+  extractAirQualityIndex(
+    airQuality: AirQualityResponse
+  ): AirQualityIndex | null {
+    if (!airQuality.current) return null;
+
+    const { european_aqi, us_aqi }: AirQualityIndex = airQuality.current;
+    return { european_aqi, us_aqi };
+  }
+
+  /**
+   * Extrai informações básicas de localização
+   * @param city - Dados da cidade
+   * @returns Informações básicas de localização
+   */
+  extractLocationInfo(city: CityCoordinates): LocationInfo {
+    const { name, country, country_code, admin1 }: LocationInfo = city;
+    return { name, country, country_code, admin1 };
+  }
+
+  /**
+   * Extrai apenas coordenadas de uma cidade
+   * @param city - Dados da cidade
+   * @returns Coordenadas básicas
+   */
+  extractBasicCoordinates(city: CityCoordinates): BasicCoordinates {
+    const { latitude, longitude }: BasicCoordinates = city;
+    return { latitude, longitude };
   }
 }

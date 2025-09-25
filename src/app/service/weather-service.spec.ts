@@ -5,6 +5,14 @@ import {
 } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { WeatherService } from './weather-service';
+import type {
+  TemperatureData,
+  WindData,
+  HourlyTemperature,
+  AirQualityIndex,
+  LocationInfo,
+  BasicCoordinates,
+} from './weather-service';
 
 describe('WeatherService', () => {
   let service: WeatherService;
@@ -21,6 +29,25 @@ describe('WeatherService', () => {
 
     service = TestBed.inject(WeatherService);
     httpMock = TestBed.inject(HttpTestingController);
+
+    // Mock da inicialização automática da cidade padrão (Parnamirim)
+    const defaultCityReq = httpMock.expectOne((request) =>
+      request.url.includes(
+        'geocoding-api.open-meteo.com/v1/search?name=Parnamirim'
+      )
+    );
+    defaultCityReq.flush({
+      results: [
+        {
+          latitude: -5.9153,
+          longitude: -35.2653,
+          name: 'Parnamirim',
+          country: 'Brasil',
+          country_code: 'BR',
+          admin1: 'Rio Grande do Norte',
+        },
+      ],
+    });
   });
 
   afterEach(() => {
@@ -40,6 +67,9 @@ describe('WeatherService', () => {
             latitude: -23.5505,
             longitude: -46.6333,
             name: 'São Paulo',
+            country: 'Brasil',
+            country_code: 'BR',
+            admin1: 'São Paulo',
           },
         ],
       };
@@ -47,6 +77,9 @@ describe('WeatherService', () => {
         latitude: -23.5505,
         longitude: -46.6333,
         name: 'São Paulo',
+        country: 'Brasil',
+        country_code: 'BR',
+        admin1: 'São Paulo',
       };
 
       service.getCityCoordinates(mockCity).subscribe((result) => {
@@ -108,6 +141,9 @@ describe('WeatherService', () => {
             latitude: -23.2237,
             longitude: -45.9009,
             name: 'São José dos Campos',
+            country: 'Brasil',
+            country_code: 'BR',
+            admin1: 'São Paulo',
           },
         ],
       };
@@ -477,6 +513,9 @@ describe('WeatherService', () => {
         latitude: -23.5505,
         longitude: -46.6333,
         name: 'São Paulo',
+        country: 'Brasil',
+        country_code: 'BR',
+        admin1: 'São Paulo',
       };
 
       const mockGeocodingResponse = {
@@ -575,6 +614,338 @@ describe('WeatherService', () => {
 
       weatherReq.flush({});
       airQualityReq.flush({});
+    });
+  });
+
+  describe('Utility Methods', () => {
+    describe('extractTemperatureData', () => {
+      it('should extract temperature data from weather response', () => {
+        const mockWeatherResponse = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          generationtime_ms: 0.123,
+          utc_offset_seconds: -10800,
+          timezone: 'America/Sao_Paulo',
+          timezone_abbreviation: '-03',
+          elevation: 760,
+          current: {
+            time: '2025-09-18T15:00',
+            temperature_2m: 22.5,
+            apparent_temperature: 24.1,
+            relative_humidity_2m: 65,
+            is_day: 1,
+            precipitation: 0,
+            rain: 0,
+            showers: 0,
+            snowfall: 0,
+            weather_code: 1,
+            cloud_cover: 25,
+            pressure_msl: 1013.2,
+            surface_pressure: 1010.5,
+            wind_speed_10m: 8.5,
+            wind_direction_10m: 180,
+            wind_gusts_10m: 12.3,
+          },
+        };
+
+        const result: TemperatureData | null =
+          service.extractTemperatureData(mockWeatherResponse);
+
+        expect(result).toEqual({
+          temperature_2m: 22.5,
+          apparent_temperature: 24.1,
+        });
+      });
+
+      it('should return null when current data is not available', () => {
+        const mockWeatherResponse = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          generationtime_ms: 0.123,
+          utc_offset_seconds: -10800,
+          timezone: 'America/Sao_Paulo',
+          timezone_abbreviation: '-03',
+          elevation: 760,
+        };
+
+        const result = service.extractTemperatureData(mockWeatherResponse);
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('extractWindData', () => {
+      it('should extract wind data from weather response', () => {
+        const mockWeatherResponse = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          generationtime_ms: 0.123,
+          utc_offset_seconds: -10800,
+          timezone: 'America/Sao_Paulo',
+          timezone_abbreviation: '-03',
+          elevation: 760,
+          current: {
+            time: '2025-09-18T15:00',
+            temperature_2m: 22.5,
+            apparent_temperature: 24.1,
+            relative_humidity_2m: 65,
+            is_day: 1,
+            precipitation: 0,
+            rain: 0,
+            showers: 0,
+            snowfall: 0,
+            weather_code: 1,
+            cloud_cover: 25,
+            pressure_msl: 1013.2,
+            surface_pressure: 1010.5,
+            wind_speed_10m: 8.5,
+            wind_direction_10m: 180,
+            wind_gusts_10m: 12.3,
+          },
+        };
+
+        const result: WindData | null =
+          service.extractWindData(mockWeatherResponse);
+
+        expect(result).toEqual({
+          wind_speed_10m: 8.5,
+          wind_direction_10m: 180,
+          wind_gusts_10m: 12.3,
+        });
+      });
+
+      it('should return null when current data is not available', () => {
+        const mockWeatherResponse = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          generationtime_ms: 0.123,
+          utc_offset_seconds: -10800,
+          timezone: 'America/Sao_Paulo',
+          timezone_abbreviation: '-03',
+          elevation: 760,
+        };
+
+        const result = service.extractWindData(mockWeatherResponse);
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('extractHourlyTemperature', () => {
+      it('should extract hourly temperature data from weather response', () => {
+        const mockWeatherResponse = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          generationtime_ms: 0.123,
+          utc_offset_seconds: -10800,
+          timezone: 'America/Sao_Paulo',
+          timezone_abbreviation: '-03',
+          elevation: 760,
+          hourly: {
+            time: ['2025-09-18T00:00', '2025-09-18T01:00', '2025-09-18T02:00'],
+            temperature_2m: [20.5, 21.0, 21.5],
+            apparent_temperature: [22.1, 22.6, 23.1],
+            relative_humidity_2m: [70, 68, 66],
+            precipitation_probability: [0, 5, 10],
+            precipitation: [0, 0, 0],
+            rain: [0, 0, 0],
+            showers: [0, 0, 0],
+            snowfall: [0, 0, 0],
+            weather_code: [1, 1, 2],
+            pressure_msl: [1013, 1012, 1011],
+            surface_pressure: [1010, 1009, 1008],
+            cloud_cover: [25, 30, 35],
+            cloud_cover_low: [10, 15, 20],
+            cloud_cover_mid: [5, 10, 10],
+            cloud_cover_high: [10, 5, 5],
+            visibility: [10000, 9500, 9000],
+            evapotranspiration: [0.1, 0.2, 0.3],
+            et0_fao_evapotranspiration: [0.15, 0.25, 0.35],
+            vapour_pressure_deficit: [0.5, 0.6, 0.7],
+            wind_speed_10m: [8, 9, 10],
+            wind_direction_10m: [180, 185, 190],
+            wind_gusts_10m: [12, 13, 14],
+            uv_index: [0, 0, 1],
+            uv_index_clear_sky: [0, 0, 2],
+            is_day: [0, 0, 0],
+            shortwave_radiation: [0, 0, 50],
+            direct_radiation: [0, 0, 30],
+            diffuse_radiation: [0, 0, 20],
+            direct_normal_irradiance: [0, 0, 40],
+            global_tilted_irradiance: [0, 0, 45],
+            sunshine_duration: [0, 0, 300],
+            daylight_duration: [0, 0, 3600],
+          },
+        };
+
+        const result: HourlyTemperature | null =
+          service.extractHourlyTemperature(mockWeatherResponse);
+
+        expect(result).toEqual({
+          time: ['2025-09-18T00:00', '2025-09-18T01:00', '2025-09-18T02:00'],
+          temperature_2m: [20.5, 21.0, 21.5],
+          apparent_temperature: [22.1, 22.6, 23.1],
+        });
+      });
+
+      it('should return null when hourly data is not available', () => {
+        const mockWeatherResponse = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          generationtime_ms: 0.123,
+          utc_offset_seconds: -10800,
+          timezone: 'America/Sao_Paulo',
+          timezone_abbreviation: '-03',
+          elevation: 760,
+        };
+
+        const result = service.extractHourlyTemperature(mockWeatherResponse);
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('extractAirQualityIndex', () => {
+      it('should extract air quality index from air quality response', () => {
+        const mockAirQualityResponse = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          generationtime_ms: 0.123,
+          utc_offset_seconds: -10800,
+          timezone: 'America/Sao_Paulo',
+          timezone_abbreviation: '-03',
+          elevation: 760,
+          current: {
+            time: '2025-09-18T15:00',
+            european_aqi: 35,
+            us_aqi: 42,
+            pm10: 25,
+            pm2_5: 15,
+            carbon_monoxide: 280,
+            nitrogen_dioxide: 18,
+            sulphur_dioxide: 5,
+            ozone: 85,
+            aerosol_optical_depth: 0.15,
+            dust: 8,
+            uv_index: 6,
+            uv_index_clear_sky: 7,
+          },
+        };
+
+        const result: AirQualityIndex | null = service.extractAirQualityIndex(
+          mockAirQualityResponse
+        );
+
+        expect(result).toEqual({
+          european_aqi: 35,
+          us_aqi: 42,
+        });
+      });
+
+      it('should return null when current data is not available', () => {
+        const mockAirQualityResponse = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          generationtime_ms: 0.123,
+          utc_offset_seconds: -10800,
+          timezone: 'America/Sao_Paulo',
+          timezone_abbreviation: '-03',
+          elevation: 760,
+        };
+
+        const result = service.extractAirQualityIndex(mockAirQualityResponse);
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('extractLocationInfo', () => {
+      it('should extract location info from city coordinates', () => {
+        const mockCityCoordinates = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          name: 'São Paulo',
+          country: 'Brasil',
+          country_code: 'BR',
+          admin1: 'São Paulo',
+        };
+
+        const result: LocationInfo =
+          service.extractLocationInfo(mockCityCoordinates);
+
+        expect(result).toEqual({
+          name: 'São Paulo',
+          country: 'Brasil',
+          country_code: 'BR',
+          admin1: 'São Paulo',
+        });
+      });
+
+      it('should handle optional fields correctly', () => {
+        const mockCityCoordinates = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          name: 'São Paulo',
+        };
+
+        const result: LocationInfo =
+          service.extractLocationInfo(mockCityCoordinates);
+
+        expect(result).toEqual({
+          name: 'São Paulo',
+          country: undefined,
+          country_code: undefined,
+          admin1: undefined,
+        });
+      });
+    });
+
+    describe('extractBasicCoordinates', () => {
+      it('should extract basic coordinates from city coordinates', () => {
+        const mockCityCoordinates = {
+          latitude: -23.5505,
+          longitude: -46.6333,
+          name: 'São Paulo',
+          country: 'Brasil',
+          country_code: 'BR',
+          admin1: 'São Paulo',
+        };
+
+        const result: BasicCoordinates =
+          service.extractBasicCoordinates(mockCityCoordinates);
+
+        expect(result).toEqual({
+          latitude: -23.5505,
+          longitude: -46.6333,
+        });
+      });
+    });
+  });
+
+  describe('Selected City Signal', () => {
+    it('should have Parnamirim as default selected city after initialization', () => {
+      const selectedCity = service.selectedCity();
+
+      expect(selectedCity).toEqual({
+        latitude: -5.9153,
+        longitude: -35.2653,
+        name: 'Parnamirim',
+        country: 'Brasil',
+        country_code: 'BR',
+        admin1: 'Rio Grande do Norte',
+      });
+    });
+
+    it('should update selected city when setSelectedCity is called', () => {
+      const newCity = {
+        latitude: -23.5505,
+        longitude: -46.6333,
+        name: 'São Paulo',
+        country: 'Brasil',
+        country_code: 'BR',
+        admin1: 'São Paulo',
+      };
+
+      service.setSelectedCity(newCity);
+      const selectedCity = service.selectedCity();
+
+      expect(selectedCity).toEqual(newCity);
     });
   });
 });

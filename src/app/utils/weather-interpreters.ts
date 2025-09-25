@@ -1,15 +1,24 @@
 /**
  * Utilities para interpretação de dados meteorológicos
  * Funções puras para converter códigos/números em informações legíveis
+ * Otimizado para conter apenas utilitários realmente utilizados
  */
 
-// Interfaces para tipagem dos retornos
+// Interface para direção do vento aprimorada
+export interface WindDirectionInfo {
+  degrees: number;
+  cardinal: string;
+  description: string;
+}
+
+// Interface para qualidade do ar
 export interface AirQualityLevel {
   level: string;
   description: string;
   color: string;
 }
 
+// Interface para índice UV
 export interface UVIndexLevel {
   level: string;
   description: string;
@@ -23,34 +32,34 @@ export interface UVIndexLevel {
  */
 export function getWeatherDescription(weatherCode: number): string {
   const weatherCodes: Record<number, string> = {
-    0: 'Céu limpo',
-    1: 'Principalmente limpo',
-    2: 'Parcialmente nublado',
+    0: 'Limpo',
+    1: 'Limpo',
+    2: 'Parcial',
     3: 'Nublado',
     45: 'Neblina',
-    48: 'Neblina com geada',
-    51: 'Garoa leve',
+    48: 'Neblina gelada',
+    51: 'Garoa',
     53: 'Garoa moderada',
-    55: 'Garoa densa',
-    56: 'Garoa congelante leve',
-    57: 'Garoa congelante densa',
-    61: 'Chuva leve',
+    55: 'Garoa forte',
+    56: 'Garoa gelada',
+    57: 'Garoa congelante',
+    61: 'Chuva',
     63: 'Chuva moderada',
     65: 'Chuva forte',
-    66: 'Chuva congelante leve',
-    67: 'Chuva congelante forte',
-    71: 'Queda de neve leve',
-    73: 'Queda de neve moderada',
-    75: 'Queda de neve forte',
-    77: 'Grãos de neve',
-    80: 'Pancadas de chuva leves',
+    66: 'Chuva gelada',
+    67: 'Chuva congelante',
+    71: 'Neve',
+    73: 'Neve moderada',
+    75: 'Neve forte',
+    77: 'Granizo',
+    80: 'Pancadas de chuva',
     81: 'Pancadas de chuva moderadas',
-    82: 'Pancadas de chuva violentas',
-    85: 'Pancadas de neve leves',
-    86: 'Pancadas de neve fortes',
+    82: 'Pancadas fortes',
+    85: 'Neve forte',
+    86: 'Neve forte',
     95: 'Tempestade',
-    96: 'Tempestade com granizo leve',
-    99: 'Tempestade com granizo forte',
+    96: 'Tempestade',
+    99: 'Tempestade forte',
   };
 
   return weatherCodes[weatherCode] || 'Condição desconhecida';
@@ -141,61 +150,53 @@ export function getUVIndexDescription(uvIndex: number): UVIndexLevel {
 }
 
 /**
- * Converte velocidade do vento de m/s para km/h
- * @param windSpeedMs Velocidade em metros por segundo
- * @returns Velocidade em quilômetros por hora
- */
-export function convertWindSpeedToKmh(windSpeedMs: number): number {
-  return Math.round(windSpeedMs * 3.6);
-}
-
-/**
- * Converte direção do vento em graus para direção cardeal
+ * Converte direção do vento em graus para informações completas
  * @param degrees Direção em graus (0-360)
- * @returns Direção cardeal (N, NE, E, SE, S, SW, W, NW)
+ * @returns Objeto com informações completas da direção do vento
  */
-export function getWindDirection(degrees: number): string {
-  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-  const index = Math.round(degrees / 45) % 8;
-  return directions[index];
-}
+export function getWindDirectionInfo(degrees: number): WindDirectionInfo {
+  const directions = [
+    { cardinal: 'N', description: 'Norte' },
+    { cardinal: 'NE', description: 'Nordeste' },
+    { cardinal: 'E', description: 'Leste' },
+    { cardinal: 'SE', description: 'Sudeste' },
+    { cardinal: 'S', description: 'Sul' },
+    { cardinal: 'SW', description: 'Sudoeste' },
+    { cardinal: 'W', description: 'Oeste' },
+    { cardinal: 'NW', description: 'Noroeste' },
+  ];
 
-/**
- * Converte pressão de hPa para outras unidades
- * @param pressureHpa Pressão em hectopascals
- * @param unit Unidade desejada ('mmHg' | 'inHg' | 'hPa')
- * @returns Pressão na unidade especificada
- */
-export function convertPressure(
-  pressureHpa: number,
-  unit: 'mmHg' | 'inHg' | 'hPa' = 'hPa'
-): number {
-  switch (unit) {
-    case 'mmHg':
-      return Math.round(pressureHpa * 0.750062);
-    case 'inHg':
-      return Math.round(pressureHpa * 0.02953 * 100) / 100;
-    case 'hPa':
-    default:
-      return pressureHpa;
-  }
+  const normalizedDegrees = ((degrees % 360) + 360) % 360;
+  const index = Math.round(normalizedDegrees / 45) % 8;
+  const direction = directions[index];
+
+  return {
+    degrees: normalizedDegrees,
+    cardinal: direction.cardinal,
+    description: direction.description,
+  };
 }
 
 /**
  * Formata temperatura com símbolo de grau
  * @param temperature Temperatura em Celsius
  * @param unit Unidade ('C' | 'F')
+ * @param precision Casas decimais (padrão: 0)
  * @returns Temperatura formatada com símbolo
  */
 export function formatTemperature(
   temperature: number,
-  unit: 'C' | 'F' = 'C'
+  unit: 'C' | 'F' = 'C',
+  precision: number = 0
 ): string {
+  const roundedTemp = parseFloat(temperature.toFixed(precision));
+
   if (unit === 'F') {
-    const fahrenheit = (temperature * 9) / 5 + 32;
-    return `${Math.round(fahrenheit)}°F`;
+    const fahrenheit = (roundedTemp * 9) / 5 + 32;
+    return `${parseFloat(fahrenheit.toFixed(precision))}°F`;
   }
-  return `${Math.round(temperature)}°C`;
+
+  return `${roundedTemp}°C`;
 }
 
 /**
@@ -292,26 +293,4 @@ export function getWeatherIcon(weatherCode: number, isDay: number): string {
 
   // Padrão para condições desconhecidas
   return isDay ? 'partly_cloudy_day' : 'partly_cloudy_night';
-}
-
-/**
- * Obtém emoji baseado no código meteorológico e se é dia/noite (mantido para compatibilidade)
- * @param weatherCode Código WMO do tempo
- * @param isDay Se é dia (1) ou noite (0)
- * @returns Emoji representativo
- * @deprecated Use getWeatherIcon() para ícones do Google Material Symbols
- */
-export function getWeatherEmoji(weatherCode: number, isDay: number): string {
-  if (weatherCode === 0) return isDay ? '☀️' : '🌙';
-  if (weatherCode === 1) return isDay ? '🌤️' : '🌙';
-  if (weatherCode === 2) return isDay ? '⛅' : '☁️';
-  if (weatherCode === 3) return '☁️';
-  if (weatherCode === 45 || weatherCode === 48) return '🌫️';
-  if ([51, 53, 55, 56, 57].includes(weatherCode)) return '🌦️';
-  if ([61, 63, 65, 66, 67].includes(weatherCode)) return '🌧️';
-  if ([71, 73, 75, 77].includes(weatherCode)) return '🌨️';
-  if ([80, 81, 82].includes(weatherCode)) return '🌦️';
-  if ([85, 86].includes(weatherCode)) return '🌨️';
-  if ([95, 96, 99].includes(weatherCode)) return '⛈️';
-  return '🌤️';
 }
